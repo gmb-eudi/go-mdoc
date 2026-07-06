@@ -14,15 +14,15 @@ import (
 
 // Fixed inputs for reproducible golden vectors.
 const (
-	tClientID  = "x509_san_dns:verifier.example.com"
-	tNonce     = "e1f2c3b4a596877869"
-	tMdocNonce = "mdoc-generated-nonce-01"
-	tRespURI   = "https://verifier.example.com/response"
-	tOrigin    = "https://verifier.example.com"
+	tClientID   = "x509_san_dns:verifier.example.com"
+	tNonce      = "e1f2c3b4a596877869"
+	tThumbprint = "NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs" // RFC 7638 JWK thumbprint stand-in
+	tRespURI    = "https://verifier.example.com/response"
+	tOrigin     = "https://verifier.example.com"
 )
 
 func TestOID4VPHandover_Structure(t *testing.T) {
-	st := OID4VPHandover(tClientID, tNonce, tMdocNonce, tRespURI)
+	st := OID4VPHandover(tClientID, tNonce, tThumbprint, tRespURI)
 	var arr []cbor.RawMessage
 	if err := decode(st.Bytes(), &arr); err != nil {
 		t.Fatal(err)
@@ -41,30 +41,48 @@ func TestOID4VPHandover_Structure(t *testing.T) {
 	if err := decode(arr[2], &handover); err != nil {
 		t.Fatal(err)
 	}
-	if len(handover) != 3 {
-		t.Fatalf("OID4VPHandover has %d elements, want 3", len(handover))
+	if len(handover) != 2 {
+		t.Fatalf("OID4VPHandover has %d elements, want 2", len(handover))
 	}
-	var cidHash, uriHash []byte
-	var nonce string
-	if err := decode(handover[0], &cidHash); err != nil || len(cidHash) != sha256.Size {
-		t.Errorf("clientIdHash len = %d (%v), want 32", len(cidHash), err)
+	var id string
+	if err := decode(handover[0], &id); err != nil || id != "OpenID4VPHandover" {
+		t.Errorf("identifier = %q (%v)", id, err)
 	}
-	if err := decode(handover[1], &uriHash); err != nil || len(uriHash) != sha256.Size {
-		t.Errorf("responseUriHash len = %d (%v), want 32", len(uriHash), err)
+	var infoHash []byte
+	if err := decode(handover[1], &infoHash); err != nil || len(infoHash) != sha256.Size {
+		t.Errorf("handoverInfoHash len = %d (%v), want 32", len(infoHash), err)
 	}
-	if err := decode(handover[2], &nonce); err != nil || nonce != tNonce {
-		t.Errorf("nonce = %q (%v), want %q", nonce, err, tNonce)
+	// hash must equal SHA-256 over the documented HandoverInfo tuple
+	wantInfo, _ := encode([]any{tClientID, tNonce, tThumbprint, tRespURI})
+	sum := sha256.Sum256(wantInfo)
+	if hex.EncodeToString(infoHash) != hex.EncodeToString(sum[:]) {
+		t.Errorf("handoverInfoHash mismatch")
 	}
-	// hashes must equal SHA-256 over the documented tuples
-	wantCID, _ := encode([]any{tClientID, tMdocNonce})
-	sum := sha256.Sum256(wantCID)
-	if hex.EncodeToString(cidHash) != hex.EncodeToString(sum[:]) {
-		t.Errorf("clientIdHash mismatch")
+}
+
+func TestOID4VPHandover_NullThumbprint(t *testing.T) {
+	st := OID4VPHandover(tClientID, tNonce, "", tRespURI)
+	var arr []cbor.RawMessage
+	if err := decode(st.Bytes(), &arr); err != nil {
+		t.Fatal(err)
+	}
+	var handover []cbor.RawMessage
+	if err := decode(arr[2], &handover); err != nil {
+		t.Fatal(err)
+	}
+	var infoHash []byte
+	if err := decode(handover[1], &infoHash); err != nil {
+		t.Fatal(err)
+	}
+	wantInfo, _ := encode([]any{tClientID, tNonce, nil, tRespURI})
+	sum := sha256.Sum256(wantInfo)
+	if hex.EncodeToString(infoHash) != hex.EncodeToString(sum[:]) {
+		t.Errorf("handoverInfoHash mismatch: empty thumbprint must encode as CBOR null")
 	}
 }
 
 func TestOID4VPDCAPIHandover_Structure(t *testing.T) {
-	st := OID4VPDCAPIHandover(tOrigin, tClientID, tNonce)
+	st := OID4VPDCAPIHandover(tOrigin, tNonce, tThumbprint)
 	var arr []cbor.RawMessage
 	if err := decode(st.Bytes(), &arr); err != nil {
 		t.Fatal(err)
@@ -84,11 +102,16 @@ func TestOID4VPDCAPIHandover_Structure(t *testing.T) {
 	if err := decode(handover[1], &infoHash); err != nil || len(infoHash) != sha256.Size {
 		t.Errorf("handoverInfoHash len = %d (%v), want 32", len(infoHash), err)
 	}
+	wantInfo, _ := encode([]any{tOrigin, tNonce, tThumbprint})
+	sum := sha256.Sum256(wantInfo)
+	if hex.EncodeToString(infoHash) != hex.EncodeToString(sum[:]) {
+		t.Errorf("handoverInfoHash mismatch")
+	}
 }
 
 func TestSessionTranscript_Deterministic(t *testing.T) {
-	a := OID4VPHandover(tClientID, tNonce, tMdocNonce, tRespURI)
-	b := OID4VPHandover(tClientID, tNonce, tMdocNonce, tRespURI)
+	a := OID4VPHandover(tClientID, tNonce, tThumbprint, tRespURI)
+	b := OID4VPHandover(tClientID, tNonce, tThumbprint, tRespURI)
 	if hex.EncodeToString(a.Bytes()) != hex.EncodeToString(b.Bytes()) {
 		t.Fatal("constructor is not deterministic")
 	}
@@ -97,8 +120,8 @@ func TestSessionTranscript_Deterministic(t *testing.T) {
 // Byte-exact vs committed golden vectors (regenerate with MDOC_GEN=1).
 func TestSessionTranscript_Golden(t *testing.T) {
 	for file, got := range map[string][]byte{
-		"oid4vp-handover.hex":       OID4VPHandover(tClientID, tNonce, tMdocNonce, tRespURI).Bytes(),
-		"oid4vp-dcapi-handover.hex": OID4VPDCAPIHandover(tOrigin, tClientID, tNonce).Bytes(),
+		"oid4vp-handover.hex":       OID4VPHandover(tClientID, tNonce, tThumbprint, tRespURI).Bytes(),
+		"oid4vp-dcapi-handover.hex": OID4VPDCAPIHandover(tOrigin, tNonce, tThumbprint).Bytes(),
 	} {
 		t.Run(file, func(t *testing.T) {
 			p := filepath.Join("testdata", "sessiontranscript", file)
@@ -117,7 +140,7 @@ func TestSessionTranscript_Golden(t *testing.T) {
 // (round-trips with T-03.5): sign a device response over it and verify.
 func TestSessionTranscript_UsableForDeviceAuth(t *testing.T) {
 	is, issuerPub, deviceKey := buildValidIssuerSigned(t, "org.iso.18013.5.1.mDL", "SHA-256", now2026().Add(-time.Hour), now2026().Add(time.Hour))
-	st := OID4VPHandover(tClientID, tNonce, tMdocNonce, tRespURI)
+	st := OID4VPHandover(tClientID, tNonce, tThumbprint, tRespURI)
 	raw := wrapDeviceResponse(t, "org.iso.18013.5.1.mDL", is, deviceKey, st)
 	if _, err := NewVerifier(WithClock(now2026)).Verify(context.Background(), VerifyInput{
 		DeviceResponse: raw, SessionTranscript: st, IssuerChainResolver: fixedResolver(issuerPub),
@@ -138,8 +161,8 @@ func TestGenerateSessionTranscriptGoldens(t *testing.T) {
 		t.Fatal(err)
 	}
 	goldens := map[string][]byte{
-		"oid4vp-handover.hex":       OID4VPHandover(tClientID, tNonce, tMdocNonce, tRespURI).Bytes(),
-		"oid4vp-dcapi-handover.hex": OID4VPDCAPIHandover(tOrigin, tClientID, tNonce).Bytes(),
+		"oid4vp-handover.hex":       OID4VPHandover(tClientID, tNonce, tThumbprint, tRespURI).Bytes(),
+		"oid4vp-dcapi-handover.hex": OID4VPDCAPIHandover(tOrigin, tNonce, tThumbprint).Bytes(),
 	}
 	for file, b := range goldens {
 		if err := os.WriteFile(filepath.Join(dir, file), []byte(hex.EncodeToString(b)+"\n"), 0o600); err != nil {

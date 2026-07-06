@@ -56,10 +56,16 @@ func (v *Verifier) verifyIssuerAuth(issuerAuth cbor.RawMessage, resolver IssuerC
 }
 
 // checkValidity enforces ISO 18013-5 §9.1.2.4 ValidityInfo. Times are safe to
-// include in errors (not attribute values).
+// include in errors (not attribute values). validFrom must be strictly before
+// validUntil (EU cross-check, docs/mdoc-eu-gap-report.md): an issuer that sets
+// them equal (or reversed) has produced an incoherent window, not a
+// zero-length-but-valid one.
 func checkValidity(vi ValidityInfo, at time.Time) error {
 	if vi.ValidFrom.IsZero() || vi.ValidUntil.IsZero() {
 		return fmt.Errorf("%w: ValidityInfo missing validFrom/validUntil", ErrMalformed)
+	}
+	if !vi.ValidFrom.Before(vi.ValidUntil) {
+		return fmt.Errorf("%w: validFrom not strictly before validUntil", ErrMalformed)
 	}
 	if at.Before(vi.ValidFrom) || at.After(vi.ValidUntil) {
 		return fmt.Errorf("%w: at=%s window=[%s,%s]", ErrValidity, at.UTC().Format(time.RFC3339), vi.ValidFrom.UTC().Format(time.RFC3339), vi.ValidUntil.UTC().Format(time.RFC3339))

@@ -32,4 +32,9 @@ var (
 	ErrDigestAlg = errors.New("mdoc: MSO digest algorithm not allowed")
 	// ErrStatus: MSO status extension present but malformed.
 	ErrStatus = errors.New("mdoc: malformed status extension")
+	// ErrDeviceResponseStatus: DeviceResponse.status is non-zero, or
+	// documentErrors is non-empty (ISO 18013-5 §8.3.2.1.2.3 Table: 0 = OK).
+	// The wallet itself signaled a problem producing the response; treated as
+	// untrustworthy as a whole rather than partially trusted (hard rule 7).
+	ErrDeviceResponseStatus = errors.New("mdoc: DeviceResponse reports a non-OK status")
 )

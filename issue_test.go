@@ -45,7 +45,7 @@ func TestIssueDevicePresentVerify_SelectiveDisclosure(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Issue: %v", err)
 	}
-	st := OID4VPHandover(tClientID, tNonce, tMdocNonce, tRespURI)
+	st := OID4VPHandover(tClientID, tNonce, tThumbprint, tRespURI)
 	deviceResp, err := DevicePresent(context.Background(), deviceKey, issuerSigned, map[string][]string{
 		"eu.europa.ec.eudi.pid.1": {"family_name", "age_over_18"}, // disclose subset; withhold given_name
 	}, st)
@@ -84,7 +84,7 @@ func TestIssueDevicePresentVerify_FullWithStatus(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	st := OID4VPDCAPIHandover(tOrigin, tClientID, tNonce)
+	st := OID4VPDCAPIHandover(tOrigin, tNonce, tThumbprint)
 	deviceResp, err := DevicePresent(context.Background(), deviceKey, issuerSigned, map[string][]string{
 		"eu.europa.ec.eudi.pid.1": {"family_name", "given_name", "age_over_18"},
 	}, st)
@@ -108,11 +108,11 @@ func TestIssueDevicePresent_WrongTranscriptFailsVerify(t *testing.T) {
 	issuer, dsPub := newTestIssuer(t)
 	deviceKey := genKey(t, elliptic.P256())
 	issuerSigned, _ := issuer.Issue(context.Background(), pidTemplate(), &deviceKey.PublicKey)
-	deviceResp, err := DevicePresent(context.Background(), deviceKey, issuerSigned, map[string][]string{"eu.europa.ec.eudi.pid.1": {"family_name"}}, OID4VPHandover(tClientID, tNonce, tMdocNonce, tRespURI))
+	deviceResp, err := DevicePresent(context.Background(), deviceKey, issuerSigned, map[string][]string{"eu.europa.ec.eudi.pid.1": {"family_name"}}, OID4VPHandover(tClientID, tNonce, tThumbprint, tRespURI))
 	if err != nil {
 		t.Fatal(err)
 	}
-	wrong := OID4VPHandover(tClientID, "OTHER-nonce", tMdocNonce, tRespURI)
+	wrong := OID4VPHandover(tClientID, "OTHER-nonce", tThumbprint, tRespURI)
 	_, err = NewVerifier(WithClock(now2026)).Verify(context.Background(), VerifyInput{DeviceResponse: deviceResp, SessionTranscript: wrong, IssuerChainResolver: fixedResolver(dsPub)})
 	if !errors.Is(err, ErrDeviceAuth) {
 		t.Fatalf("err = %v, want ErrDeviceAuth", err)

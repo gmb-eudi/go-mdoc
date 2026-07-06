@@ -130,6 +130,36 @@ func TestDecodeToleratesUnknownFields(t *testing.T) {
 	}
 }
 
+// A non-OK top-level status is the wallet's own signal that something went
+// wrong; the whole response is rejected, not just the affected document(s).
+func TestDecodeDeviceResponseRejectsNonZeroStatus(t *testing.T) {
+	m := map[string]any{"version": "1.0", "status": uint(11)} // 11 = cbor_decoding_error
+	raw, err := encode(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := DecodeDeviceResponse(raw); !errors.Is(err, ErrDeviceResponseStatus) {
+		t.Fatalf("err = %v, want ErrDeviceResponseStatus", err)
+	}
+}
+
+// A non-empty documentErrors is rejected even if status happens to read 0 —
+// either signal alone means the wallet flagged a problem.
+func TestDecodeDeviceResponseRejectsDocumentErrors(t *testing.T) {
+	m := map[string]any{
+		"version":        "1.0",
+		"status":         uint(0),
+		"documentErrors": []map[string]int{{"org.iso.18013.5.1.mDL": 0}},
+	}
+	raw, err := encode(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := DecodeDeviceResponse(raw); !errors.Is(err, ErrDeviceResponseStatus) {
+		t.Fatalf("err = %v, want ErrDeviceResponseStatus", err)
+	}
+}
+
 func TestDecodeDeviceResponseRejectsGarbage(t *testing.T) {
 	for name, raw := range map[string][]byte{
 		"nil":       nil,

@@ -65,6 +65,14 @@ func TestVerifyMSO_Failures(t *testing.T) {
 			wantErr: ErrValidity,
 		},
 		{
+			name: "validFrom equals validUntil",
+			mutate: func(t *testing.T) ([]byte, IssuerChainResolver) {
+				is, pub, deviceKey := buildValidIssuerSigned(t, "org.iso.18013.5.1.mDL", "SHA-256", now2026(), now2026())
+				return wrapDeviceResponse(t, "org.iso.18013.5.1.mDL", is, deviceKey, defaultTranscript(t)), fixedResolver(pub)
+			},
+			wantErr: ErrMalformed,
+		},
+		{
 			name: "digestAlg SHA-1",
 			mutate: func(t *testing.T) ([]byte, IssuerChainResolver) {
 				is, pub, deviceKey := buildValidIssuerSigned(t, "org.iso.18013.5.1.mDL", "SHA-1", from, until)
