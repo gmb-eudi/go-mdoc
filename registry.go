@@ -33,7 +33,7 @@ func KnownDocType(docType string) bool {
 // doctype/namespace registry and its value-type hooks. Pure and value-free:
 // Verify (T-03.3–5) never consults this registry, so an unknown doctype still
 // verifies cryptographically — Report is descriptive metadata only, consumed
-// by verifier-core (WP-09) for its client report + redaction hints.
+// by eudi-verifier-core (WP-09) for its client report + redaction hints.
 func Report(vd VerifiedDocument) DocumentReport {
 	spec, known := registry[vd.DocType]
 	rep := DocumentReport{DocType: vd.DocType, KnownDocType: known}

@@ -9,7 +9,7 @@ import (
 
 // IssuerChainResolver resolves the issuer certificate chain (x5chain, DER) to
 // the document-signer public key. It is the trust boundary: go-mdoc stays
-// trust-agnostic (ADR-0004) and verifier-core wires this to go-eudi-trust.
+// trust-agnostic (ADR-0004) and eudi-verifier-core wires this to go-eudi-trust.
 type IssuerChainResolver func(x5chain [][]byte) (dsKey crypto.PublicKey, err error)
 
 // VerifyInput bundles one DeviceResponse with the session binding and the trust
