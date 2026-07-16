@@ -100,7 +100,7 @@ func TestReport_UnknownDocTypePassThrough(t *testing.T) {
 	}
 }
 
-// hard rule 3: the report type carries no place for a value. TestReport_NoValues
+// The report type carries no place for a value. TestReport_NoValues
 // proves this operationally (not just by type-shape inspection): it plants a
 // distinctive sentinel as a disclosed value, runs it through Report, and then
 // asserts the sentinel string is absent from every representation of the

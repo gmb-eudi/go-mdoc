@@ -8,13 +8,12 @@ import (
 
 // StatusRef is the MSO status extension reference (IETF Token Status List,
 // draft-ietf-oauth-status-list) surfaced to the caller. go-mdoc only extracts
-// it; fetching and evaluating the status list is WP-04 (go-statuslist). Raw
+// it; fetching and evaluating the status list is go-statuslist. Raw
 // preserves the full status map for forward-compatibility (e.g. identifier_list).
 //
-// T-03.3 note: only the type existed here originally so VerifiedDocument.Status
-// type-checked against the WP-03 README "Locked public interface" (hard rule
-// 11, binding from T-03.3 onward). T-03.8 adds parseMSOStatus below and wires
-// VerifiedDocument.Status in verify.go.
+// Note: only the type existed here originally so VerifiedDocument.Status
+// type-checked against the locked public interface; parseMSOStatus below now
+// populates it and verify.go wires VerifiedDocument.Status.
 type StatusRef struct {
 	URI   string
 	Index uint
@@ -23,7 +22,7 @@ type StatusRef struct {
 
 // parseMSOStatus extracts the status reference from an MSO status field.
 // Absent (nil/empty) → (nil, nil). Present but not a valid status structure →
-// ErrStatus (fail closed: unknown status format is a hard failure, hard rule 7).
+// ErrStatus (fail closed: unknown status format is a hard failure).
 //
 // ISO 18013-5 MSO status extension carrying an IETF Token Status List
 // (draft-ietf-oauth-status-list) reference:

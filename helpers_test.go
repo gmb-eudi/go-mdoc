@@ -39,8 +39,8 @@ func cosePointXY(pub *ecdsa.PublicKey) (x, y []byte, err error) {
 	return b[1 : 1+half], b[1+half:], nil
 }
 
-// coseCurveLabel maps a stdlib curve to its COSE EC2 curve label (RFC 9053
-// §7.1), or ok=false for curves this test package doesn't build fixtures for.
+// coseCurveLabel maps a stdlib curve to its COSE EC2 curve label
+// ([RFC 9053 §7.1]), or ok=false for curves this test package doesn't build fixtures for.
 func coseCurveLabel(c elliptic.Curve) (label int64, ok bool) {
 	switch c {
 	case elliptic.P256():
@@ -54,7 +54,7 @@ func coseCurveLabel(c elliptic.Curve) (label int64, ok bool) {
 	}
 }
 
-// deviceKeyToCOSE encodes an EC public key as a COSE_Key (RFC 9052 §7): kty EC2,
+// deviceKeyToCOSE encodes an EC public key as a COSE_Key ([RFC 9052 §7]): kty EC2,
 // crv label, x, y. Matches parseCOSEKey.
 func deviceKeyToCOSE(t *testing.T, pub *ecdsa.PublicKey) cbor.RawMessage {
 	t.Helper()
@@ -109,7 +109,7 @@ func deviceKeyToCOSEUnchecked(t *testing.T, pub *ecdsa.PublicKey, crv int64) cbo
 // buildValidIssuerSigned returns a DeviceResponse-ready IssuerSigned with one
 // cryptographically valid MSO, plus the issuer public key (for a matching or
 // mismatching resolver) and the device PRIVATE key so callers can sign the
-// device side (device auth is mandatory from T-03.5 onward).
+// device side (device auth is mandatory).
 func buildValidIssuerSigned(t *testing.T, docType, digestAlg string, from, until time.Time) (issuerSigned IssuerSigned, issuerPub *ecdsa.PublicKey, deviceKey *ecdsa.PrivateKey) {
 	t.Helper()
 	issuerKey := genKey(t, elliptic.P256())
@@ -126,8 +126,8 @@ func buildValidIssuerSigned(t *testing.T, docType, digestAlg string, from, until
 }
 
 // wrapDeviceResponse wraps is into a single-document DeviceResponse, signing a
-// real detached deviceSignature bound to st with deviceKey (ISO 18013-5
-// §9.1.3.4; device auth is mandatory from T-03.5 onward).
+// real detached deviceSignature bound to st with deviceKey
+// ([ISO/IEC 18013-5 §9.1.3.4]; device auth is mandatory).
 func wrapDeviceResponse(t *testing.T, docType string, is IssuerSigned, deviceKey *ecdsa.PrivateKey, st SessionTranscript) []byte {
 	t.Helper()
 	resp := DeviceResponse{Version: "1.0", Documents: []Document{{
@@ -141,8 +141,8 @@ func wrapDeviceResponse(t *testing.T, docType string, is IssuerSigned, deviceKey
 }
 
 // signDeviceSigned builds a DeviceSigned with an empty DeviceNameSpaces and a
-// valid detached deviceSignature over DeviceAuthenticationBytes for st (ISO
-// 18013-5 §9.1.3.4).
+// valid detached deviceSignature over DeviceAuthenticationBytes for st
+// ([ISO/IEC 18013-5 §9.1.3.4]).
 func signDeviceSigned(t *testing.T, deviceKey *ecdsa.PrivateKey, docType string, st SessionTranscript) DeviceSigned {
 	t.Helper()
 	devNS, err := encodeTagged24(map[string]any{})
@@ -185,7 +185,7 @@ type msoFixture struct {
 	validUntil time.Time
 	// namespace => (digestID => IssuerSignedItemBytes) so tests can tamper.
 	items map[string]map[uint]cbor.RawMessage
-	// optional status extension raw CBOR (T-03.8)
+	// optional status extension raw CBOR
 	status cbor.RawMessage
 }
 
@@ -194,11 +194,11 @@ type msoFixture struct {
 //
 // f.digestAlg is written into the MSO verbatim even when it is not
 // ECCG-allowed (e.g. "SHA-1" fixtures exercising Verify's fail-closed digest
-// allow-list, WP-03 README T-03.3 acceptance criteria): ValueDigests still
+// allow-list): ValueDigests still
 // need SOME well-formed hash so the MSO decodes structurally, so this falls
 // back to SHA-256 to compute them. The fallback is test-only plumbing, not a
-// second production allow-list (hard rule 4) — Verify rejects the disallowed
-// digestAlg before per-item digests are ever consulted (T-03.4).
+// second production allow-list — Verify rejects the disallowed
+// digestAlg before per-item digests are ever consulted.
 func buildMSOBytes(t *testing.T, f msoFixture) []byte {
 	t.Helper()
 	h, err := hashForMSODigestAlg(f.digestAlg)
@@ -232,7 +232,7 @@ func buildMSOBytes(t *testing.T, f msoFixture) []byte {
 }
 
 // signIssuerAuth signs MobileSecurityObjectBytes with the issuer key and injects
-// the x5chain into the unprotected header (ISO 18013-5 §9.1.2.4 location).
+// the x5chain into the unprotected header ([ISO/IEC 18013-5 §9.1.2.4] location).
 func signIssuerAuth(t *testing.T, issuerKey *ecdsa.PrivateKey, x5chain [][]byte, msoBytes []byte) cbor.RawMessage {
 	t.Helper()
 	kp := eudicrypto.NewStaticProvider(map[string]*ecdsa.PrivateKey{"ds": issuerKey})

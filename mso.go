@@ -9,7 +9,7 @@ import (
 	eudicrypto "github.com/gmb-eudi/go-eudi-crypto"
 )
 
-// verifyIssuerAuth performs ISO 18013-5 §9.1.2 issuer data authentication:
+// verifyIssuerAuth performs [ISO/IEC 18013-5 §9.1.2] issuer data authentication:
 // extract x5chain → resolve DS key (trust callback) → verify the IssuerAuth
 // COSE_Sign1 (go-eudi-crypto) → decode the MSO → enforce the digest-alg
 // allow-list, the ValidityInfo window, and return the sealed device key.
@@ -55,9 +55,9 @@ func (v *Verifier) verifyIssuerAuth(issuerAuth cbor.RawMessage, resolver IssuerC
 	return &mso, deviceKey, nil
 }
 
-// checkValidity enforces ISO 18013-5 §9.1.2.4 ValidityInfo. Times are safe to
+// checkValidity enforces [ISO/IEC 18013-5 §9.1.2.4] ValidityInfo. Times are safe to
 // include in errors (not attribute values). validFrom must be strictly before
-// validUntil (EU cross-check, docs/mdoc-eu-gap-report.md): an issuer that sets
+// validUntil (EU cross-check): an issuer that sets
 // them equal (or reversed) has produced an incoherent window, not a
 // zero-length-but-valid one.
 func checkValidity(vi ValidityInfo, at time.Time) error {

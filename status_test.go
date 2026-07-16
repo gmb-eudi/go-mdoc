@@ -51,7 +51,7 @@ func TestParseMSOStatus(t *testing.T) {
 }
 
 // End-to-end: a valid MSO status surfaces on VerifiedDocument.Status; a
-// malformed one fails the whole verification (fail closed, hard rule 7).
+// malformed one fails the whole verification (fail closed).
 func TestVerify_StatusSurfaced(t *testing.T) {
 	build := func(t *testing.T, status cbor.RawMessage) ([]byte, *ecdsa.PublicKey, SessionTranscript) {
 		issuerKey := genKey(t, elliptic.P256())

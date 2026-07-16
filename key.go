@@ -12,9 +12,9 @@ import (
 	eudicrypto "github.com/gmb-eudi/go-eudi-crypto"
 )
 
-// parseCOSEKey parses a COSE_Key (RFC 9052 §7) into an EC public key. EC2 keys
+// parseCOSEKey parses a COSE_Key ([RFC 9052 §7]) into an EC public key. EC2 keys
 // only. The curve is validated against the ECCG allow-list via go-eudi-crypto
-// (hard rule 4); the point is checked on-curve via crypto/ecdh.
+// the point is checked on-curve via crypto/ecdh.
 //
 // FLAG (README corrections, finding #5): go-eudi-crypto exposes no COSE_Key
 // parser; propose eudicrypto.ParseCOSEKey. This implementation threads the
@@ -25,7 +25,7 @@ func parseCOSEKey(raw cbor.RawMessage) (*ecdsa.PublicKey, error) {
 		return nil, fmt.Errorf("%w: COSE_Key: %v", ErrMalformed, err)
 	}
 	var kty int64
-	if err := decode(m[1], &kty); err != nil || kty != 2 { // RFC 9053 §7.1: EC2 = 2
+	if err := decode(m[1], &kty); err != nil || kty != 2 { // [RFC 9053 §7.1]: EC2 = 2
 		return nil, fmt.Errorf("%w: COSE_Key kty not EC2", ErrUnsupported)
 	}
 	var crvLabel int64
@@ -60,7 +60,7 @@ func parseCOSEKey(raw cbor.RawMessage) (*ecdsa.PublicKey, error) {
 	return &ecdsa.PublicKey{Curve: curve, X: new(big.Int).SetBytes(x), Y: new(big.Int).SetBytes(y)}, nil
 }
 
-// curveForCOSELabel maps a COSE EC2 curve label (RFC 9053 §7.1) to the stdlib
+// curveForCOSELabel maps a COSE EC2 curve label ([RFC 9053 §7.1]) to the stdlib
 // curve, its ecdh counterpart, and the ECCG policy name.
 func curveForCOSELabel(label int64) (elliptic.Curve, ecdh.Curve, string, error) {
 	switch label {
@@ -75,10 +75,10 @@ func curveForCOSELabel(label int64) (elliptic.Curve, ecdh.Curve, string, error) 
 	}
 }
 
-// encodeCOSEKey encodes an EC public key as a COSE_Key (RFC 9052 §7): kty EC2,
-// crv, x, y. The curve is validated via the ECCG allow-list (hard rule 4) and
+// encodeCOSEKey encodes an EC public key as a COSE_Key ([RFC 9052 §7]): kty EC2,
+// crv, x, y. The curve is validated via the ECCG allow-list and
 // coordinates are read via ecdsa.PublicKey.Bytes() (Go 1.26; the deprecated
-// X/Y big.Int fields are not used). Used by Issue (T-03.9) to seal the device
+// X/Y big.Int fields are not used). Used by Issue to seal the device
 // key into the MSO DeviceKeyInfo — the inverse of parseCOSEKey.
 func encodeCOSEKey(pub *ecdsa.PublicKey) ([]byte, error) {
 	var crv int64

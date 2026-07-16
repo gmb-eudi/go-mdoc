@@ -12,7 +12,7 @@ import (
 
 // buildMinimalDeviceResponse assembles a structurally complete (but NOT
 // cryptographically valid) DeviceResponse purely from the wire structs, so the
-// model can be exercised before the Issue façade (T-03.9) exists. It uses the
+// model can be exercised before the Issue façade exists. It uses the
 // package encode()/encodeTagged24() helpers directly.
 func buildMinimalDeviceResponse(t *testing.T) []byte {
 	t.Helper()
@@ -108,7 +108,7 @@ func TestDecodeDeviceResponseRoundtrip(t *testing.T) {
 	}
 }
 
-// T-03.2 acceptance: unknown-field tolerance per CDDL — a forward-compatible
+// Acceptance: unknown-field tolerance per CDDL — a forward-compatible
 // producer may add map members we do not model; decoding must ignore them.
 func TestDecodeToleratesUnknownFields(t *testing.T) {
 	// Encode a map with the DeviceResponse members plus an extra "futureField".
@@ -176,7 +176,7 @@ func TestDecodeDeviceResponseRejectsGarbage(t *testing.T) {
 	}
 }
 
-// The generated vector is committed so other modules (WP-08/WP-09) can decode a
+// The generated vector is committed so other modules can decode a
 // known-shape DeviceResponse without regenerating it.
 func TestDecodeCommittedVector(t *testing.T) {
 	p := filepath.Join("testdata", "mdoc", "minimal-deviceresponse.hex")

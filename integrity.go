@@ -7,11 +7,11 @@ import (
 	"github.com/fxamacker/cbor/v2"
 )
 
-// verifyIssuerIntegrity performs ISO 18013-5 §9.1.2.5 issuer-data integrity:
+// verifyIssuerIntegrity performs [ISO/IEC 18013-5 §9.1.2.5] issuer-data integrity:
 // for every disclosed IssuerSignedItem, recompute the digest over its exact
 // IssuerSignedItemBytes (wire bytes) and match it against MSO ValueDigests for
 // the SAME namespace and digestID. Any item whose namespace/digestID is absent
-// from ValueDigests, or whose digest differs, fails closed (hard rule 7). A
+// from ValueDigests, or whose digest differs, fails closed. A
 // disclosed subset is allowed: only presented items are checked. Returns the
 // disclosed, digest-checked values (forwarded to the caller, never persisted).
 func (v *Verifier) verifyIssuerIntegrity(mso *MobileSecurityObject, ns IssuerNameSpaces) (map[string]map[string]any, error) {
@@ -36,7 +36,7 @@ func (v *Verifier) verifyIssuerIntegrity(mso *MobileSecurityObject, ns IssuerNam
 				return nil, fmt.Errorf("%w: namespace %q digestID %d not in ValueDigests", ErrIntegrity, namespace, isi.DigestID)
 			}
 			hh := h.New()
-			hh.Write([]byte(itemBytes)) // digest over exact wire bytes (ISO §9.1.2.5)
+			hh.Write([]byte(itemBytes)) // digest over exact wire bytes ([ISO/IEC 18013-5 §9.1.2.5])
 			got := hh.Sum(nil)
 			if subtle.ConstantTimeCompare(got, want) != 1 {
 				return nil, fmt.Errorf("%w: namespace %q element %q digest mismatch", ErrIntegrity, namespace, isi.ElementIdentifier)

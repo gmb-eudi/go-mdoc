@@ -137,7 +137,7 @@ func TestSessionTranscript_Golden(t *testing.T) {
 }
 
 // The constructor produces a transcript usable by device authentication
-// (round-trips with T-03.5): sign a device response over it and verify.
+// (round-trips with the device-auth path): sign a device response over it and verify.
 func TestSessionTranscript_UsableForDeviceAuth(t *testing.T) {
 	is, issuerPub, deviceKey := buildValidIssuerSigned(t, "org.iso.18013.5.1.mDL", "SHA-256", now2026().Add(-time.Hour), now2026().Add(time.Hour))
 	st := OID4VPHandover(tClientID, tNonce, tThumbprint, tRespURI)

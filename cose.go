@@ -47,7 +47,7 @@ func coseAssemble(parts [4]cbor.RawMessage) (cbor.RawMessage, error) {
 }
 
 // x5chainFrom extracts the certificate chain (RFC 9360 label 33) from the
-// COSE_Sign1 unprotected header (ISO 18013-5 §9.1.2.4 location); it also checks
+// COSE_Sign1 unprotected header ([ISO/IEC 18013-5 §9.1.2.4] location); it also checks
 // the protected header, which RFC 9360 permits.
 func x5chainFrom(parts [4]cbor.RawMessage) ([][]byte, error) {
 	if chain, ok, err := x5chainFromMap([]byte(parts[1])); err != nil {
@@ -94,7 +94,7 @@ func x5chainFromMap(mapCBOR []byte) ([][]byte, bool, error) {
 }
 
 // parseX5Chain accepts either a single bstr (one cert) or an array of bstr
-// (RFC 9360 §2). DER parsing/validation is the resolver's job (go-eudi-crypto).
+// ([RFC 9360 §2]). DER parsing/validation is the resolver's job (go-eudi-crypto).
 func parseX5Chain(raw cbor.RawMessage) ([][]byte, error) {
 	var single []byte
 	if err := decode(raw, &single); err == nil {
@@ -112,8 +112,8 @@ func parseX5Chain(raw cbor.RawMessage) ([][]byte, error) {
 
 // spliceCOSEPayload replaces the (detached) payload of a COSE_Sign1 with
 // payload and returns a tag-18 message ready for VerifyCOSESign1. Used for
-// DeviceSignature verification (ISO 18013-5 §9.1.3.4 detached payload;
-// finding #2) via verifyDeviceAuth (T-03.5).
+// DeviceSignature verification ([ISO/IEC 18013-5 §9.1.3.4] detached payload;
+// finding #2) via verifyDeviceAuth.
 func spliceCOSEPayload(raw cbor.RawMessage, payload []byte) (cbor.RawMessage, error) {
 	parts, err := coseParts(raw)
 	if err != nil {
@@ -128,9 +128,9 @@ func spliceCOSEPayload(raw cbor.RawMessage, payload []byte) (cbor.RawMessage, er
 }
 
 // detachCOSEPayload replaces the payload of a COSE_Sign1 with CBOR null,
-// producing the ISO 18013-5 §9.1.3.4 detached-payload form of a device
+// producing the [ISO/IEC 18013-5 §9.1.3.4] detached-payload form of a device
 // signature. The signature is unaffected (it never covers the payload slot
-// literally; it covers the Sig_structure). Used by DevicePresent (T-03.9).
+// literally; it covers the Sig_structure). Used by DevicePresent.
 func detachCOSEPayload(raw cbor.RawMessage) (cbor.RawMessage, error) {
 	parts, err := coseParts(raw)
 	if err != nil {
@@ -145,7 +145,7 @@ func detachCOSEPayload(raw cbor.RawMessage) (cbor.RawMessage, error) {
 }
 
 // signCOSEWithX5Chain signs payload with go-eudi-crypto and injects the x5chain
-// into the unprotected header (ISO 18013-5 §9.1.2.4). The signature covers the
+// into the unprotected header ([ISO/IEC 18013-5 §9.1.2.4]). The signature covers the
 // protected header + payload only, so unprotected injection is safe.
 //
 // NOTE (README corrections, finding #1): go-eudi-crypto's SignCOSESign1 cannot

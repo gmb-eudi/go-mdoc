@@ -35,7 +35,7 @@ func NewIssuer(kp eudicrypto.KeyProvider, keyID string, x5chain [][]byte) *Issue
 	return &Issuer{kp: kp, keyID: keyID, x5chain: x5chain}
 }
 
-// Issue builds an IssuerSigned (ISO 18013-5 §9.1.2): one IssuerSignedItem per
+// Issue builds an IssuerSigned ([ISO/IEC 18013-5 §9.1.2]): one IssuerSignedItem per
 // element (fresh 32-byte random salt), the ValueDigests over the exact
 // IssuerSignedItemBytes, an MSO sealing the device key, and the COSE_Sign1
 // IssuerAuth. deviceKey must be an ECCG-allowed EC public key.
@@ -119,7 +119,7 @@ func (i *Issuer) Issue(ctx context.Context, doc DocumentTemplate, deviceKey cryp
 
 // DevicePresent produces a DeviceResponse from an issued IssuerSigned by
 // disclosing only the requested elements and signing the DeviceAuthentication
-// with the holder's device key, bound to st (ISO 18013-5 §9.1.3). This is the
+// with the holder's device key, bound to st ([ISO/IEC 18013-5 §9.1.3]). This is the
 // test-wallet counterpart to Verify.
 func DevicePresent(ctx context.Context, deviceKey crypto.Signer, issuerSigned []byte, disclose map[string][]string, st SessionTranscript) ([]byte, error) {
 	var is IssuerSigned

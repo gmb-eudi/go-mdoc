@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// T-03.1: the hardened DecMode must reject duplicate map keys (RFC 8949 §5.6
+// The hardened DecMode must reject duplicate map keys ([RFC 8949 §5.6]
 // ambiguity is an injection vector), over-deep nesting, and over-large
 // arrays/maps, and must reject indefinite-length items. These are decoded via
 // the same decode() every untrusted-input path uses.
@@ -46,7 +46,7 @@ func TestDecodeRejectsTrailingData(t *testing.T) {
 	// The trailing-data check must fail closed regardless of whether the
 	// trailing bytes happen to parse as a complete item, a truncated head, or
 	// a stray break byte — anything other than a clean io.EOF is malformed
-	// (hard rule 7: fail closed).
+	// (fail closed).
 	cases := []struct {
 		name string
 		raw  []byte

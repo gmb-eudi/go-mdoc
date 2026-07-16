@@ -10,7 +10,7 @@ import (
 	"github.com/fxamacker/cbor/v2"
 )
 
-// Hardened decode limits (conventions.md: max nesting, max array/map size,
+// Hardened decode limits (max nesting, max array/map size,
 // duplicate-key reject). Bounds are generous for legitimate mdoc responses yet
 // bounded against resource-exhaustion / ambiguity attacks on untrusted input.
 const (
@@ -20,8 +20,8 @@ const (
 )
 
 // decMode is the ONE decoder for all untrusted input. fxamacker/cbor is wrapped
-// here and never exposed in the public API (ADR-0004). go-eudi-crypto exposes
-// no CBOR options, and conventions.md permits format libs to own their DecMode.
+// here and never exposed in the public API. go-eudi-crypto exposes
+// no CBOR options, and format libraries own their DecMode.
 var decMode = mustDecMode()
 
 // encMode is the ONE deterministic encoder. Canonical map-key sort + tag-0
@@ -30,17 +30,17 @@ var encMode = mustEncMode()
 
 func mustDecMode() cbor.DecMode {
 	m, err := cbor.DecOptions{
-		DupMapKey:        cbor.DupMapKeyEnforcedAPF, // RFC 8949 §5.6: reject duplicates
+		DupMapKey:        cbor.DupMapKeyEnforcedAPF, // [RFC 8949 §5.6]: reject duplicates
 		IndefLength:      cbor.IndefLengthForbidden, // ISO mdoc uses definite lengths
 		MaxNestedLevels:  maxNestedLevels,
 		MaxArrayElements: maxArrayElements,
 		MaxMapPairs:      maxMapPairs,
 		TagsMd:           cbor.TagsAllowed,                    // need tag 0 (time) and tag 24 (embedded)
-		DefaultMapType:   reflect.TypeOf(map[string]any(nil)), // element values → map[string]any (go-dcql, WP-05)
+		DefaultMapType:   reflect.TypeOf(map[string]any(nil)), // element values → map[string]any (go-dcql)
 		// ExtraReturnErrors intentionally does NOT include ExtraDecErrorUnknownField:
-		// the CDDL wire model (T-03.2) requires unknown-map-field tolerance so a
+		// the CDDL wire model requires unknown-map-field tolerance so a
 		// forward-compatible producer can add members we don't model yet
-		// (TestDecodeToleratesUnknownFields). T-03.1's guard tests decode into
+		// (TestDecodeToleratesUnknownFields). The guard tests decode into
 		// concrete types and do not depend on this option.
 		UTF8: cbor.UTF8RejectInvalid,
 	}.DecMode()
@@ -65,8 +65,8 @@ func mustEncMode() cbor.EncMode {
 
 // decode decodes exactly one top-level CBOR item into v using the hardened
 // DecMode and rejects trailing data. Every fxamacker error becomes ErrMalformed
-// so parsers never leak third-party error types (ADR-0004) and never panic
-// (hard rule 5).
+// so parsers never leak third-party error types and never panic
+// on untrusted input.
 func decode(raw []byte, v any) error {
 	dec := decMode.NewDecoder(bytes.NewReader(raw))
 	if err := dec.Decode(v); err != nil {
@@ -74,7 +74,7 @@ func decode(raw []byte, v any) error {
 	}
 	// Reject trailing bytes: anything after the top-level item must decode to
 	// exactly nothing (io.EOF). A second valid item, a partial/truncated head,
-	// or garbage bytes are all trailing data and must fail closed (hard rule 7)
+	// or garbage bytes are all trailing data and must fail closed
 	// rather than being silently accepted because they didn't parse cleanly.
 	var scratch cbor.RawMessage
 	if err := dec.Decode(&scratch); !errors.Is(err, io.EOF) {

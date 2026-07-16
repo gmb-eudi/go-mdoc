@@ -9,12 +9,12 @@ import (
 
 // IssuerChainResolver resolves the issuer certificate chain (x5chain, DER) to
 // the document-signer public key. It is the trust boundary: go-mdoc stays
-// trust-agnostic (ADR-0004) and eudi-verifier-core wires this to go-eudi-trust.
+// trust-agnostic and eudi-verifier-core wires this to go-eudi-trust.
 type IssuerChainResolver func(x5chain [][]byte) (dsKey crypto.PublicKey, err error)
 
 // VerifyInput bundles one DeviceResponse with the session binding and the trust
 // callback. SessionTranscript is opaque here (built by go-oid4vp via the
-// constructors in T-03.6) and is enforced by device-auth transcript binding
+// constructors) and is enforced by device-auth transcript binding
 // (verifyDeviceAuth): an empty/mismatched transcript fails closed.
 type VerifyInput struct {
 	DeviceResponse      []byte
@@ -26,7 +26,7 @@ type VerifyInput struct {
 // VerifiedDocument is the result for one Document: disclosed + digest-checked
 // namespaces, the validity window, the device key, an optional status ref, and
 // the MSO digest algorithm. Namespaces carry disclosed values forwarded to the
-// caller (ADR-0005) and are never persisted.
+// caller and are never persisted.
 type VerifiedDocument struct {
 	DocType      string
 	Namespaces   map[string]map[string]any
@@ -44,7 +44,7 @@ type Verifier struct {
 // Option configures a Verifier.
 type Option func(*Verifier)
 
-// WithClock injects the time source for ValidityInfo checks (conventions.md:
+// WithClock injects the time source for ValidityInfo checks (no wall clock:
 // inject func() time.Time into anything validating validity windows).
 func WithClock(now func() time.Time) Option {
 	return func(v *Verifier) {
@@ -64,11 +64,11 @@ func NewVerifier(opts ...Option) *Verifier {
 }
 
 // Verify parses and verifies a DeviceResponse for remote flows. Fail closed:
-// any failing check aborts with a precise sentinel (hard rule 7). verifyDocument
+// any failing check aborts with a precise sentinel (fail closed). verifyDocument
 // performs MSO (issuer) authentication, issuer-data integrity, device
 // authentication, and status-reference extraction, in that order.
 //
-// ISO 18013-5 §8.3 / §9.1; ISO/IEC TS 18013-7 Annex B.
+// [ISO/IEC 18013-5 §8.3 / §9.1]; ISO/IEC TS 18013-7 Annex B.
 func (v *Verifier) Verify(ctx context.Context, in VerifyInput) ([]VerifiedDocument, error) {
 	_ = ctx // resolver carries no context (README signature); reserved for future use
 	if in.IssuerChainResolver == nil {
@@ -98,14 +98,14 @@ func (v *Verifier) Verify(ctx context.Context, in VerifyInput) ([]VerifiedDocume
 }
 
 // verifyDocument runs the per-document checks: issuer auth, issuer-data
-// integrity, device auth, then status-reference extraction (T-03.8; the
+// integrity, device auth, then status-reference extraction (the
 // reference is only extracted here, not evaluated — see parseMSOStatus).
 func (v *Verifier) verifyDocument(doc *Document, in VerifyInput, at time.Time) (VerifiedDocument, error) {
 	mso, deviceKey, err := v.verifyIssuerAuth(doc.IssuerSigned.IssuerAuth, in.IssuerChainResolver, at)
 	if err != nil {
 		return VerifiedDocument{}, err
 	}
-	// ISO 18013-5 §8.3.2.1.2.2 / §9.1.2: docType is carried independently on
+	// [ISO/IEC 18013-5 §8.3.2.1.2.2 / §9.1.2]: docType is carried independently on
 	// Document and inside the signed MSO; a reader MUST reject a mismatch
 	// (an attacker could otherwise splice a validly-signed MSO for one
 	// doctype under a Document claiming another).

@@ -8,15 +8,15 @@ import (
 	eudicrypto "github.com/gmb-eudi/go-eudi-crypto"
 )
 
-// verifyDeviceAuth performs ISO 18013-5 §9.1.3 mdoc (device) authentication.
-// deviceMac is rejected (WP-03 Decisions: remote flows use a signature). The
+// verifyDeviceAuth performs [ISO/IEC 18013-5 §9.1.3] mdoc (device) authentication.
+// deviceMac is rejected (remote flows use a signature). The
 // deviceSignature is a COSE_Sign1 with a detached payload equal to
 // DeviceAuthenticationBytes; go-mdoc recomputes those bytes from the transcript
 // it was given and splices them in before delegating verification to
 // go-eudi-crypto — binding the signature to this exact session (finding #2).
 //
 // DeviceAuthentication = ["DeviceAuthentication", SessionTranscript, DocType,
-// DeviceNameSpacesBytes] (ISO 18013-5 §9.1.3.4).
+// DeviceNameSpacesBytes] ([ISO/IEC 18013-5 §9.1.3.4]).
 func (v *Verifier) verifyDeviceAuth(doc *Document, deviceKey crypto.PublicKey, st SessionTranscript) error {
 	da := doc.DeviceSigned.DeviceAuth
 	if len(da.DeviceMac) > 0 {

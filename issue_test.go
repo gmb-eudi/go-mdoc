@@ -102,7 +102,7 @@ func TestIssueDevicePresentVerify_FullWithStatus(t *testing.T) {
 	}
 }
 
-// Every pipeline check must be fail-able from the Issue façade (conventions.md):
+// Every pipeline check must be fail-able from the Issue façade:
 // a device response presented under the WRONG transcript fails device auth.
 func TestIssueDevicePresent_WrongTranscriptFailsVerify(t *testing.T) {
 	issuer, dsPub := newTestIssuer(t)
@@ -129,7 +129,7 @@ func TestDevicePresent_UnknownElementRejected(t *testing.T) {
 	}
 }
 
-// --- Issue edge cases (fail closed; hard rule 7) ---
+// --- Issue edge cases (fail closed) ---
 
 func TestIssue_EmptyDocTypeFails(t *testing.T) {
 	issuer, _ := newTestIssuer(t)
@@ -168,7 +168,7 @@ func TestIssue_DefaultDigestAlg(t *testing.T) {
 	}
 }
 
-// A digestAlg outside the ECCG allow-list (hard rule 4) must reject at Issue
+// A digestAlg outside the ECCG allow-list must reject at Issue
 // time, not just at Verify time.
 func TestIssue_DisallowedDigestAlgFails(t *testing.T) {
 	issuer, _ := newTestIssuer(t)
@@ -192,7 +192,7 @@ func TestIssue_NonECDeviceKeyFails(t *testing.T) {
 	}
 }
 
-// An EC device key on a curve outside the ECCG allow-list (hard rule 4) fails
+// An EC device key on a curve outside the ECCG allow-list fails
 // at encodeCOSEKey.
 func TestIssue_UnsupportedDeviceCurveFails(t *testing.T) {
 	issuer, _ := newTestIssuer(t)
@@ -231,7 +231,7 @@ func TestIssueDevicePresentVerify_DeviceKeyCurves(t *testing.T) {
 	}
 }
 
-// --- DevicePresent edge cases (fail closed; hard rule 7) ---
+// --- DevicePresent edge cases (fail closed) ---
 
 func TestDevicePresent_MalformedIssuerSignedFails(t *testing.T) {
 	deviceKey := genKey(t, elliptic.P256())
@@ -273,7 +273,7 @@ func TestDevicePresent_NamespaceNotInCredentialFails(t *testing.T) {
 	}
 }
 
-// --- Internal helper edge cases (white-box; malformed-input robustness, hard rule 5) ---
+// --- Internal helper edge cases (white-box; malformed-input robustness) ---
 
 func TestSelectDisclosed_MalformedItemFails(t *testing.T) {
 	if _, err := selectDisclosed(IssuerNameSpaces{"ns": {cbor.RawMessage{0xff}}}, map[string][]string{"ns": {"x"}}); err == nil {

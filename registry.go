@@ -6,12 +6,12 @@ import (
 )
 
 // ElementReport annotates one disclosed element for the verification report.
-// It carries identifiers and flags only — never a value (hard rule 3).
+// It carries identifiers and flags only — never a value.
 type ElementReport struct {
 	Namespace  string
 	Identifier string
 	Known      bool // element registered for this doctype's namespace
-	PII        bool // portrait/biometric — redact in logs/report (conventions.md)
+	PII        bool // portrait/biometric — redact in logs/report
 	TypeValid  bool // value passed the registered type hook (true if no hook)
 }
 
@@ -31,9 +31,9 @@ func KnownDocType(docType string) bool {
 
 // Report annotates the disclosed namespaces of a verified document using the
 // doctype/namespace registry and its value-type hooks. Pure and value-free:
-// Verify (T-03.3–5) never consults this registry, so an unknown doctype still
+// Verify never consults this registry, so an unknown doctype still
 // verifies cryptographically — Report is descriptive metadata only, consumed
-// by eudi-verifier-core (WP-09) for its client report + redaction hints.
+// by eudi-verifier-core for its client report + redaction hints.
 func Report(vd VerifiedDocument) DocumentReport {
 	spec, known := registry[vd.DocType]
 	rep := DocumentReport{DocType: vd.DocType, KnownDocType: known}
@@ -116,7 +116,7 @@ func ageOverPattern(id string) bool {
 }
 
 // commonIdentityElements are shared name/date/portrait elements; PII flags per
-// conventions.md redaction list (portrait, biometric_template, document numbers).
+// the redaction list (portrait, biometric_template, document numbers).
 func commonIdentityElements() map[string]elementSpec {
 	return map[string]elementSpec{
 		"family_name":        {validate: isString},
@@ -134,7 +134,7 @@ func commonIdentityElements() map[string]elementSpec {
 	}
 }
 
-// mdlNamespace: ISO/IEC 18013-5:2021 §7.2.1 (org.iso.18013.5.1 namespace).
+// mdlNamespace: [ISO/IEC 18013-5:2021 §7.2.1] (org.iso.18013.5.1 namespace).
 func mdlNamespace() namespaceSpec {
 	el := commonIdentityElements()
 	el["driving_privileges"] = elementSpec{} // array of maps

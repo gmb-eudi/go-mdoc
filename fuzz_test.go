@@ -10,7 +10,7 @@ import (
 )
 
 // FuzzDecodeDeviceResponse: the DeviceResponse decoder must never panic on
-// malformed input (hard rule 5). Run ≥ 30 s locally before completing T-03.2.
+// malformed input. Run ≥ 30 s locally.
 func FuzzDecodeDeviceResponse(f *testing.F) {
 	f.Add([]byte(nil))
 	f.Add([]byte{0xa0})       // empty map
@@ -34,7 +34,7 @@ func FuzzDecodeDeviceResponse(f *testing.F) {
 }
 
 // FuzzVerify: Verify must never panic on malformed DeviceResponse bytes, even
-// with a resolver that returns a key. Run ≥ 30 s (hard rule 5).
+// with a resolver that returns a key. Run ≥ 30 s.
 func FuzzVerify(f *testing.F) {
 	f.Add(buildFuzzSeed())
 	f.Add([]byte{0xa0})
@@ -46,7 +46,7 @@ func FuzzVerify(f *testing.F) {
 	})
 }
 
-// FuzzParseCOSEKey: the COSE_Key parser must never panic (hard rule 5).
+// FuzzParseCOSEKey: the COSE_Key parser must never panic.
 func FuzzParseCOSEKey(f *testing.F) {
 	key, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	f.Add(deviceKeyToCOSEBytes(&key.PublicKey))
@@ -56,8 +56,8 @@ func FuzzParseCOSEKey(f *testing.F) {
 	})
 }
 
-// FuzzParseMSOStatus: the MSO status extension parser must never panic (hard
-// rule 5). FuzzVerify cannot reach this path because it is gated behind
+// FuzzParseMSOStatus: the MSO status extension parser must never panic.
+// FuzzVerify cannot reach this path because it is gated behind
 // eudicrypto.VerifyCOSESign1 (a real ECDSA signature check the mutation
 // fuzzer cannot satisfy from an unsigned seed), so parseMSOStatus needs its
 // own direct-call fuzz target — same rationale as FuzzParseCOSEKey above.
