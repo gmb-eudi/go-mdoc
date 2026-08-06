@@ -5,7 +5,10 @@ ISO/IEC 18013-5 mdoc (CBOR/COSE) for EUDI Wallet relying parties:
 - Parse and verify a `DeviceResponse` for remote flows (ISO/IEC TS 18013-7 /
   OpenID4VP Annex B): MSO / issuer-data authentication, issuer-data integrity,
   and mdoc (device) authentication bound to a session transcript.
-- SessionTranscript constructors for the OpenID4VP and DC-API handovers.
+- SessionTranscript constructors for the OpenID4VP and DC-API handovers. The
+  reader's ephemeral-key JWK thumbprint is passed as **raw digest bytes**
+  (`[]byte`, `nil` when the response is unencrypted) — the handover carries it as
+  a CBOR byte string, never the printable base64url form.
 - A minimal Issue / DevicePresent façade for test wallets and a future issuer.
 - Framework-free (no Azugo/platform-kit); all COSE/X.509 crypto is delegated to
   go-eudi-crypto (ECCG-pinned policy). Trust-agnostic: the issuer certificate

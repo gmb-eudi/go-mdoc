@@ -33,25 +33,22 @@ func sessionTranscriptFromRaw(raw []byte) SessionTranscript {
 // OID4VPHandover builds the SessionTranscript for the redirect (non-DC-API)
 // OpenID4VP flow: SessionTranscript = [null, null, OID4VPHandover], where
 // OID4VPHandover = ["OpenID4VPHandover", SHA-256(CBOR(OpenID4VPHandoverInfo))]
-// and OpenID4VPHandoverInfo = [client_id, nonce, jwkThumbprint, response_uri]
-// (OpenID4VP 1.0 Annex B.2.6.1). jwkThumbprint is the RFC 7638 thumbprint of
-// the RP's ephemeral encryption key when the response is JWE-encrypted
-// (response_mode=direct_post.jwt); pass "" (encoded as CBOR null) when it is
-// not. SHA-256 is fixed by the profile — a spec constant, not an
-// ECCG-negotiable choice, so it is not routed through the algorithm allow-list.
+// and OpenID4VPHandoverInfo = [clientId, nonce, jwkThumbprint, responseUri]
+// ([OpenID4VP 1.0 Annex B.2.6.1]). SHA-256 is fixed by the profile — a spec
+// constant, not an ECCG-negotiable choice, so it is not routed through the
+// algorithm allow-list.
 //
-// FLAG (2026-07-06 EU cross-check): this replaces
-// an earlier, unverified 3-hash-tuple construction that never matched any
-// known implementation. Corrected to match the EU reference verifier
-// (eudi-srv-verifier-endpoint-main, DocumentValidator.kt buildOpenId4VpHandover)
-// after the OpenID4VP 1.0 Annex B text could not be fetched this session
-// (WebFetch truncates before Annex B; no vendored copy in references/). The
-// outer shape (identifier + single HandoverInfo hash) and inner element
-// order/membership are well-corroborated against that production reference;
-// jwkThumbprint's exact CBOR type (tstr assumed here) is NOT yet confirmed
-// against primary spec text — re-verify before wiring in an encrypted-response
-// production deployment.
-func OID4VPHandover(clientID, nonce, jwkThumbprint, responseURI string) SessionTranscript {
+// clientID is the client_id request parameter INCLUDING its Client Identifier
+// Prefix (e.g. "x509_san_dns:verifier.example.com"); responseURI is whichever
+// of response_uri / redirect_uri the response mode used.
+//
+// jwkThumbprint is the RFC 7638 JWK SHA-256 thumbprint of the RP's ephemeral
+// response-encryption public key as RAW DIGEST BYTES, encoded on the wire as a
+// CBOR byte string — never the printable base64url form, which hashes to a
+// different transcript and would fail device authentication against every
+// conformant wallet. Pass nil when the response is not encrypted; that encodes
+// as CBOR null, as the spec requires.
+func OID4VPHandover(clientID, nonce string, jwkThumbprint []byte, responseURI string) SessionTranscript {
 	info := []any{clientID, nonce, nullable(jwkThumbprint), responseURI}
 	infoHash := sha256Sum(mustEncode(info))
 	handover := []any{"OpenID4VPHandover", infoHash}
@@ -62,23 +59,27 @@ func OID4VPHandover(clientID, nonce, jwkThumbprint, responseURI string) SessionT
 // Credentials API flow: SessionTranscript = [null, null, OID4VPDCAPIHandover],
 // OID4VPDCAPIHandover = ["OpenID4VPDCAPIHandover",
 // SHA-256(CBOR(OpenID4VPDCAPIHandoverInfo))], OpenID4VPDCAPIHandoverInfo =
-// [origin, nonce, jwkThumbprint] (OpenID4VP 1.0 Annex B.2.6.2; no client_id or
-// response_uri in this variant — origin carries the RP identity signal
-// instead). jwkThumbprint: see OID4VPHandover's doc comment (same FLAG applies).
-func OID4VPDCAPIHandover(origin, nonce, jwkThumbprint string) SessionTranscript {
+// [origin, nonce, jwkThumbprint] ([OpenID4VP 1.0 Annex B.2.6.2]; no clientId or
+// responseUri in this variant — origin carries the RP identity signal instead,
+// and must not carry an "origin:" prefix).
+//
+// jwkThumbprint: raw digest bytes or nil, exactly as for OID4VPHandover. It is
+// present for response mode dc_api.jwt and null for plain dc_api.
+func OID4VPDCAPIHandover(origin, nonce string, jwkThumbprint []byte) SessionTranscript {
 	info := []any{origin, nonce, nullable(jwkThumbprint)}
 	infoHash := sha256Sum(mustEncode(info))
 	handover := []any{"OpenID4VPDCAPIHandover", infoHash}
 	return sessionTranscriptFromRaw(mustEncode([]any{nil, nil, handover}))
 }
 
-// nullable maps an absent (empty) optional string to CBOR null, matching the
-// spec's "or null" phrasing for the ephemeral-key thumbprint elements.
-func nullable(s string) any {
-	if s == "" {
+// nullable maps an absent (nil or empty) thumbprint to CBOR null, matching the
+// spec's "otherwise the third element MUST be null" phrasing. A non-empty value
+// is returned as []byte so the encoder emits a byte string, not a text string.
+func nullable(thumbprint []byte) any {
+	if len(thumbprint) == 0 {
 		return nil
 	}
-	return s
+	return thumbprint
 }
 
 func sha256Sum(b []byte) []byte {

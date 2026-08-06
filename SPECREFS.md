@@ -18,17 +18,10 @@ against ARF 2.9: PID doctype/namespace `eu.europa.ec.eudi.pid.1`, PID SD-JWT VCT
 `urn:eudi:pid:1`, mDL doctype `org.iso.18013.5.1.mDL` / namespace
 `org.iso.18013.5.1`.
 
-**SessionTranscript / `OID4VPHandover` / `OID4VPDCAPIHandover` — CORRECTED
-2026-07-06** (see `../../docs/mdoc-eu-gap-report.md` §3, and
-`testdata/sessiontranscript/SOURCE.md`): the original 3-hash-tuple construction
-never matched any known implementation (it was PENDING cross-check from the
-start). Corrected against `references/eudi-srv-verifier-endpoint-main` (the EU
-reference RP verifier — same role as us) to the `["<identifier>",
-SHA-256(CBOR(HandoverInfo))]` shape. **Primary-source confirmation is still
-outstanding**: OpenID4VP 1.0 (and ISO/IEC TS 18013-7 Annex B, which mirrors it)
-could not be fetched this session — the official spec HTML is too large for the
-available fetch tooling and truncates before reaching Annex B; no vendored copy
-exists under `references/`. Vendor it and re-verify byte-for-byte — especially
-the exact CBOR type of the ephemeral-key JWK thumbprint element (`tstr`
-assumed) — before wiring an encrypted-response (`direct_post.jwt`) deployment
-against these constructors in WP-08.
+## SessionTranscript / `OID4VPHandover` / `OID4VPDCAPIHandover` — confirmed
+Verified against the primary OpenID4VP 1.0 Annex B.2.6.1 / B.2.6.2 text and the
+worked examples published there. `TestSessionTranscript_SpecVectors` reproduces
+those examples byte-for-byte for both handover types, so the shape, the element
+order and each element's CBOR type are pinned by the specification rather than
+by inference. See `testdata/sessiontranscript/SOURCE.md` for the CDDL this
+package implements and for the two encodings it previously got wrong.
