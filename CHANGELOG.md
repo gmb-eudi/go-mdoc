@@ -23,8 +23,7 @@ compile error. There is one construction site per consumer, and the fix is mecha
   implementation — not this library — decides which instant the certificate path is judged
   at. A document signer is short-lived while the credentials it signed stay in wallets far
   longer, so only the caller knows whether the question is "was this issuer trusted when it
-  signed" or "is it trusted now". A nil `IssuerTrust` fails with `ErrUnsupported`, exactly
-  as a nil resolver did.
+  signed" or "is it trusted now". A nil `IssuerTrust` fails with `ErrUnsupported`, exactly   as a nil resolver did.
 
   **Migration.** Move your closure onto a type with that one method:
 
@@ -64,6 +63,6 @@ compile error. There is one construction site per consumer, and the fix is mecha
 
 ### Notes
 
-- No new version of go-eudi-crypto is required.
+- Dependency update.
 - Test fixtures now carry a real document signer certificate, because the window assertion
   parses `x5chain[0]`.
