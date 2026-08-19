@@ -15,7 +15,7 @@ func TestDeviceAuth_Valid(t *testing.T) {
 	st := defaultTranscript(t)
 	raw := wrapDeviceResponse(t, "org.iso.18013.5.1.mDL", is, deviceKey, st)
 	_, err := NewVerifier(WithClock(now2026)).Verify(context.Background(), VerifyInput{
-		DeviceResponse: raw, SessionTranscript: st, IssuerChainResolver: fixedResolver(issuerPub),
+		DeviceResponse: raw, SessionTranscript: st, IssuerTrust: &fixedTrust{pub: issuerPub},
 	})
 	if err != nil {
 		t.Fatalf("Verify: %v", err)
@@ -34,7 +34,7 @@ func TestDeviceAuth_TranscriptSwapFails(t *testing.T) {
 	}
 	swapped := sessionTranscriptFromRaw(otherRaw)
 	_, err = NewVerifier(WithClock(now2026)).Verify(context.Background(), VerifyInput{
-		DeviceResponse: raw, SessionTranscript: swapped, IssuerChainResolver: fixedResolver(issuerPub),
+		DeviceResponse: raw, SessionTranscript: swapped, IssuerTrust: &fixedTrust{pub: issuerPub},
 	})
 	if !errors.Is(err, ErrDeviceAuth) {
 		t.Fatalf("err = %v, want ErrDeviceAuth", err)
@@ -58,7 +58,7 @@ func TestDeviceAuth_DeviceMacUnsupported(t *testing.T) {
 	}
 	_ = deviceKey
 	_, err = NewVerifier(WithClock(now2026)).Verify(context.Background(), VerifyInput{
-		DeviceResponse: raw, SessionTranscript: st, IssuerChainResolver: fixedResolver(issuerPub),
+		DeviceResponse: raw, SessionTranscript: st, IssuerTrust: &fixedTrust{pub: issuerPub},
 	})
 	if !errors.Is(err, ErrDeviceMacUnsupported) {
 		t.Fatalf("err = %v, want ErrDeviceMacUnsupported", err)
@@ -72,7 +72,7 @@ func TestDeviceAuth_WrongDeviceKeyFails(t *testing.T) {
 	rogue := genKey(t, elliptic.P256()) // not the MSO deviceKey
 	raw := wrapDeviceResponse(t, "org.iso.18013.5.1.mDL", is, rogue, st)
 	_, err := NewVerifier(WithClock(now2026)).Verify(context.Background(), VerifyInput{
-		DeviceResponse: raw, SessionTranscript: st, IssuerChainResolver: fixedResolver(issuerPub),
+		DeviceResponse: raw, SessionTranscript: st, IssuerTrust: &fixedTrust{pub: issuerPub},
 	})
 	if !errors.Is(err, ErrDeviceAuth) {
 		t.Fatalf("err = %v, want ErrDeviceAuth", err)
@@ -84,7 +84,7 @@ func TestDeviceAuth_MissingTranscriptFails(t *testing.T) {
 	is, issuerPub, deviceKey := buildValidIssuerSigned(t, "org.iso.18013.5.1.mDL", "SHA-256", now2026().Add(-time.Hour), now2026().Add(time.Hour))
 	raw := wrapDeviceResponse(t, "org.iso.18013.5.1.mDL", is, deviceKey, defaultTranscript(t))
 	_, err := NewVerifier(WithClock(now2026)).Verify(context.Background(), VerifyInput{
-		DeviceResponse: raw, IssuerChainResolver: fixedResolver(issuerPub), // no SessionTranscript
+		DeviceResponse: raw, IssuerTrust: &fixedTrust{pub: issuerPub}, // no SessionTranscript
 	})
 	if !errors.Is(err, ErrDeviceAuth) {
 		t.Fatalf("err = %v, want ErrDeviceAuth", err)

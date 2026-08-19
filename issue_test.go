@@ -18,7 +18,11 @@ func newTestIssuer(t *testing.T) (*Issuer, *ecdsa.PublicKey) {
 	t.Helper()
 	dsKey := genKey(t, elliptic.P256())
 	kp := eudicrypto.NewStaticProvider(map[string]*ecdsa.PrivateKey{"ds": dsKey})
-	return NewIssuer(kp, "ds", [][]byte{{0xDE, 0xAD}}), &dsKey.PublicKey
+	// A real document signer certificate, wide enough to cover any signing time
+	// these fixtures stamp: the signing-time-inside-the-signer-window assertion
+	// parses whatever the issuer put in the chain.
+	dsCert := issuerCertDER(t, dsKey, now2026().Add(-10*365*24*time.Hour), now2026().Add(10*365*24*time.Hour))
+	return NewIssuer(kp, "ds", [][]byte{dsCert}), &dsKey.PublicKey
 }
 
 func pidTemplate() DocumentTemplate {
@@ -53,7 +57,7 @@ func TestIssueDevicePresentVerify_SelectiveDisclosure(t *testing.T) {
 		t.Fatalf("DevicePresent: %v", err)
 	}
 	docs, err := NewVerifier(WithClock(now2026)).Verify(context.Background(), VerifyInput{
-		DeviceResponse: deviceResp, SessionTranscript: st, IssuerChainResolver: fixedResolver(dsPub),
+		DeviceResponse: deviceResp, SessionTranscript: st, IssuerTrust: &fixedTrust{pub: dsPub},
 	})
 	if err != nil {
 		t.Fatalf("Verify: %v", err)
@@ -92,7 +96,7 @@ func TestIssueDevicePresentVerify_FullWithStatus(t *testing.T) {
 		t.Fatal(err)
 	}
 	docs, err := NewVerifier(WithClock(now2026)).Verify(context.Background(), VerifyInput{
-		DeviceResponse: deviceResp, SessionTranscript: st, IssuerChainResolver: fixedResolver(dsPub),
+		DeviceResponse: deviceResp, SessionTranscript: st, IssuerTrust: &fixedTrust{pub: dsPub},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -113,7 +117,7 @@ func TestIssueDevicePresent_WrongTranscriptFailsVerify(t *testing.T) {
 		t.Fatal(err)
 	}
 	wrong := OID4VPHandover(tClientID, "OTHER-nonce", tThumbprint, tRespURI)
-	_, err = NewVerifier(WithClock(now2026)).Verify(context.Background(), VerifyInput{DeviceResponse: deviceResp, SessionTranscript: wrong, IssuerChainResolver: fixedResolver(dsPub)})
+	_, err = NewVerifier(WithClock(now2026)).Verify(context.Background(), VerifyInput{DeviceResponse: deviceResp, SessionTranscript: wrong, IssuerTrust: &fixedTrust{pub: dsPub}})
 	if !errors.Is(err, ErrDeviceAuth) {
 		t.Fatalf("err = %v, want ErrDeviceAuth", err)
 	}
@@ -158,7 +162,7 @@ func TestIssue_DefaultDigestAlg(t *testing.T) {
 		t.Fatalf("DevicePresent: %v", err)
 	}
 	docs, err := NewVerifier(WithClock(now2026)).Verify(context.Background(), VerifyInput{
-		DeviceResponse: deviceResp, SessionTranscript: st, IssuerChainResolver: fixedResolver(dsPub),
+		DeviceResponse: deviceResp, SessionTranscript: st, IssuerTrust: &fixedTrust{pub: dsPub},
 	})
 	if err != nil {
 		t.Fatalf("Verify: %v", err)
@@ -219,7 +223,7 @@ func TestIssueDevicePresentVerify_DeviceKeyCurves(t *testing.T) {
 				t.Fatalf("DevicePresent: %v", err)
 			}
 			docs, err := NewVerifier(WithClock(now2026)).Verify(context.Background(), VerifyInput{
-				DeviceResponse: deviceResp, SessionTranscript: st, IssuerChainResolver: fixedResolver(dsPub),
+				DeviceResponse: deviceResp, SessionTranscript: st, IssuerTrust: &fixedTrust{pub: dsPub},
 			})
 			if err != nil {
 				t.Fatalf("Verify: %v", err)

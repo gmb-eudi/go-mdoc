@@ -376,7 +376,7 @@ func TestSessionTranscript_UsableForDeviceAuth(t *testing.T) {
 	st := OID4VPHandover(tClientID, tNonce, tThumbprint, tRespURI)
 	raw := wrapDeviceResponse(t, "org.iso.18013.5.1.mDL", is, deviceKey, st)
 	if _, err := NewVerifier(WithClock(now2026)).Verify(context.Background(), VerifyInput{
-		DeviceResponse: raw, SessionTranscript: st, IssuerChainResolver: fixedResolver(issuerPub),
+		DeviceResponse: raw, SessionTranscript: st, IssuerTrust: &fixedTrust{pub: issuerPub},
 	}); err != nil {
 		t.Fatalf("Verify with OID4VPHandover transcript: %v", err)
 	}
@@ -391,7 +391,7 @@ func TestSessionTranscript_WrongTranscriptFailsDeviceAuth(t *testing.T) {
 
 	other := OID4VPHandover(tClientID, tNonce, []byte(base64.RawURLEncoding.EncodeToString(tThumbprint)), tRespURI)
 	if _, err := NewVerifier(WithClock(now2026)).Verify(context.Background(), VerifyInput{
-		DeviceResponse: raw, SessionTranscript: other, IssuerChainResolver: fixedResolver(issuerPub),
+		DeviceResponse: raw, SessionTranscript: other, IssuerTrust: &fixedTrust{pub: issuerPub},
 	}); err == nil {
 		t.Fatal("Verify accepted a device response signed over a different SessionTranscript")
 	}

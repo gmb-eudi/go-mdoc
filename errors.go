@@ -14,6 +14,13 @@ var (
 	// ErrIssuerAuth: IssuerAuth (MSO) signature or chain resolution failed.
 	// Maps to err:credential:issuer-untrusted.
 	ErrIssuerAuth = errors.New("mdoc: issuer authentication failed")
+	// ErrIssuerCertValidity: the signing time the credential carries lies
+	// outside the validity window of the document signer certificate in the MSO
+	// header ([ISO/IEC 18013-5 §9.3.1] step 5). Kept apart from ErrIssuerAuth so
+	// a certificate-window problem is never reported as an unknown issuer — the
+	// remedies are different and one of them wastes an operator's day. Maps to
+	// err:credential:issuer-cert-expired.
+	ErrIssuerCertValidity = errors.New("mdoc: signing time outside the document signer certificate validity window")
 	// ErrIntegrity: an IssuerSignedItem digest does not match MSO ValueDigests,
 	// or an item is absent from ValueDigests. Maps to err:credential:integrity.
 	ErrIntegrity = errors.New("mdoc: issuer-data integrity check failed")
