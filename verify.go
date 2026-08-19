@@ -7,20 +7,36 @@ import (
 	"time"
 )
 
-// IssuerChainResolver resolves the issuer certificate chain (x5chain, DER) to
-// the document-signer public key. It is the trust boundary: go-mdoc stays
-// trust-agnostic and eudi-verifier-core wires this to go-eudi-trust.
-type IssuerChainResolver func(x5chain [][]byte) (dsKey crypto.PublicKey, err error)
+// IssuerTrust is the trust boundary: go-mdoc stays trust-agnostic and the
+// verifier wires this to its trust layer.
+//
+// ResolveIssuerKey receives the issuer certificate chain (x5chain, DER, leaf
+// first) and the signing time the credential claims, and returns the document
+// signer's public key. The signing time is passed because a document signer is
+// short-lived while the credentials it signed stay in wallets far longer, so the
+// implementation — not this library — decides which instant the certificate path
+// is judged at. Both models are legitimate and the choice belongs to the relying
+// party's risk appetite.
+//
+// The claimed time is NOT authenticated when this is called: it is read from the
+// issuer-signed structure whose signature is verified with the key this call
+// returns. It selects a validation time and authorizes nothing. Verify
+// independently asserts that it falls inside the signer certificate's own
+// validity window, and re-asserts after the signature verifies that the
+// authenticated signing time is the value that was passed here.
+type IssuerTrust interface {
+	ResolveIssuerKey(x5chain [][]byte, signed time.Time) (dsKey crypto.PublicKey, err error)
+}
 
 // VerifyInput bundles one DeviceResponse with the session binding and the trust
-// callback. SessionTranscript is opaque here (built by go-oid4vp via the
+// boundary. SessionTranscript is opaque here (built by go-oid4vp via the
 // constructors) and is enforced by device-auth transcript binding
 // (verifyDeviceAuth): an empty/mismatched transcript fails closed.
 type VerifyInput struct {
-	DeviceResponse      []byte
-	SessionTranscript   SessionTranscript
-	IssuerChainResolver IssuerChainResolver
-	ExpectedDocType     string
+	DeviceResponse    []byte
+	SessionTranscript SessionTranscript
+	IssuerTrust       IssuerTrust
+	ExpectedDocType   string
 }
 
 // VerifiedDocument is the result for one Document: disclosed + digest-checked
@@ -70,9 +86,9 @@ func NewVerifier(opts ...Option) *Verifier {
 //
 // [ISO/IEC 18013-5 §8.3 / §9.1]; ISO/IEC TS 18013-7 Annex B.
 func (v *Verifier) Verify(ctx context.Context, in VerifyInput) ([]VerifiedDocument, error) {
-	_ = ctx // resolver carries no context (README signature); reserved for future use
-	if in.IssuerChainResolver == nil {
-		return nil, fmt.Errorf("%w: nil IssuerChainResolver", ErrUnsupported)
+	_ = ctx // the trust boundary carries no context (README signature); reserved for future use
+	if in.IssuerTrust == nil {
+		return nil, fmt.Errorf("%w: nil IssuerTrust", ErrUnsupported)
 	}
 	resp, err := DecodeDeviceResponse(in.DeviceResponse)
 	if err != nil {
@@ -101,7 +117,7 @@ func (v *Verifier) Verify(ctx context.Context, in VerifyInput) ([]VerifiedDocume
 // integrity, device auth, then status-reference extraction (the
 // reference is only extracted here, not evaluated — see parseMSOStatus).
 func (v *Verifier) verifyDocument(doc *Document, in VerifyInput, at time.Time) (VerifiedDocument, error) {
-	mso, deviceKey, err := v.verifyIssuerAuth(doc.IssuerSigned.IssuerAuth, in.IssuerChainResolver, at)
+	mso, deviceKey, err := v.verifyIssuerAuth(doc.IssuerSigned.IssuerAuth, in.IssuerTrust, at)
 	if err != nil {
 		return VerifiedDocument{}, err
 	}

@@ -128,7 +128,7 @@ func TestVerify_PopulatesNamespaces(t *testing.T) {
 	is, pub, deviceKey := buildValidIssuerSigned(t, "org.iso.18013.5.1.mDL", "SHA-256", now2026().Add(-time.Hour), now2026().Add(time.Hour))
 	st := defaultTranscript(t)
 	raw := wrapDeviceResponse(t, "org.iso.18013.5.1.mDL", is, deviceKey, st)
-	docs, err := NewVerifier(WithClock(now2026)).Verify(context.Background(), VerifyInput{DeviceResponse: raw, SessionTranscript: st, IssuerChainResolver: fixedResolver(pub)})
+	docs, err := NewVerifier(WithClock(now2026)).Verify(context.Background(), VerifyInput{DeviceResponse: raw, SessionTranscript: st, IssuerTrust: &fixedTrust{pub: pub}})
 	if err != nil {
 		t.Fatal(err)
 	}

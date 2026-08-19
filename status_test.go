@@ -63,7 +63,8 @@ func TestVerify_StatusSurfaced(t *testing.T) {
 			items:  map[string]map[uint]cbor.RawMessage{"org.iso.18013.5.1": {0: fn}},
 			status: status,
 		})
-		issuerAuth := signIssuerAuth(t, issuerKey, [][]byte{{0x01}}, msoBytes)
+		dsCert := issuerCertDER(t, issuerKey, now2026().Add(-2*time.Hour), now2026().Add(2*time.Hour))
+		issuerAuth := signIssuerAuth(t, issuerKey, [][]byte{dsCert}, msoBytes)
 		is := IssuerSigned{NameSpaces: IssuerNameSpaces{"org.iso.18013.5.1": {fn}}, IssuerAuth: issuerAuth}
 		st := defaultTranscript(t)
 		return wrapDeviceResponse(t, "org.iso.18013.5.1.mDL", is, dev, st), &issuerKey.PublicKey, st
@@ -71,7 +72,7 @@ func TestVerify_StatusSurfaced(t *testing.T) {
 
 	t.Run("valid status surfaced", func(t *testing.T) {
 		raw, pub, st := build(t, statusListCBOR(t, "https://issuer.example/sl/7", 5))
-		docs, err := NewVerifier(WithClock(now2026)).Verify(context.Background(), VerifyInput{DeviceResponse: raw, SessionTranscript: st, IssuerChainResolver: fixedResolver(pub)})
+		docs, err := NewVerifier(WithClock(now2026)).Verify(context.Background(), VerifyInput{DeviceResponse: raw, SessionTranscript: st, IssuerTrust: &fixedTrust{pub: pub}})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -82,7 +83,7 @@ func TestVerify_StatusSurfaced(t *testing.T) {
 
 	t.Run("absent status → nil", func(t *testing.T) {
 		raw, pub, st := build(t, nil)
-		docs, err := NewVerifier(WithClock(now2026)).Verify(context.Background(), VerifyInput{DeviceResponse: raw, SessionTranscript: st, IssuerChainResolver: fixedResolver(pub)})
+		docs, err := NewVerifier(WithClock(now2026)).Verify(context.Background(), VerifyInput{DeviceResponse: raw, SessionTranscript: st, IssuerTrust: &fixedTrust{pub: pub}})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -94,7 +95,7 @@ func TestVerify_StatusSurfaced(t *testing.T) {
 	t.Run("malformed status fails verification", func(t *testing.T) {
 		bad, _ := encode("not a status map")
 		raw, pub, st := build(t, cbor.RawMessage(bad))
-		_, err := NewVerifier(WithClock(now2026)).Verify(context.Background(), VerifyInput{DeviceResponse: raw, SessionTranscript: st, IssuerChainResolver: fixedResolver(pub)})
+		_, err := NewVerifier(WithClock(now2026)).Verify(context.Background(), VerifyInput{DeviceResponse: raw, SessionTranscript: st, IssuerTrust: &fixedTrust{pub: pub}})
 		if !errors.Is(err, ErrStatus) {
 			t.Fatalf("err = %v, want ErrStatus", err)
 		}

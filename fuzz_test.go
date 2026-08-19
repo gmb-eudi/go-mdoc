@@ -34,15 +34,15 @@ func FuzzDecodeDeviceResponse(f *testing.F) {
 }
 
 // FuzzVerify: Verify must never panic on malformed DeviceResponse bytes, even
-// with a resolver that returns a key. Run ≥ 30 s.
+// with a trust boundary that returns a key. Run ≥ 30 s.
 func FuzzVerify(f *testing.F) {
 	f.Add(buildFuzzSeed())
 	f.Add([]byte{0xa0})
 	key, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	resolver := func(_ [][]byte) (cryptoPub, error) { return &key.PublicKey, nil }
+	trust := &fixedTrust{pub: &key.PublicKey}
 	v := NewVerifier(WithClock(func() time.Time { return time.Unix(1_800_000_000, 0) }))
 	f.Fuzz(func(_ *testing.T, data []byte) {
-		_, _ = v.Verify(context.Background(), VerifyInput{DeviceResponse: data, IssuerChainResolver: resolver})
+		_, _ = v.Verify(context.Background(), VerifyInput{DeviceResponse: data, IssuerTrust: trust})
 	})
 }
 

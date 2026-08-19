@@ -12,7 +12,13 @@ ISO/IEC 18013-5 mdoc (CBOR/COSE) for EUDI Wallet relying parties:
 - A minimal Issue / DevicePresent façade for test wallets and a future issuer.
 - Framework-free (no Azugo/platform-kit); all COSE/X.509 crypto is delegated to
   go-eudi-crypto (ECCG-pinned policy). Trust-agnostic: the issuer certificate
-  chain is resolved through a caller-supplied `IssuerChainResolver` callback.
+  chain is resolved through a caller-supplied `IssuerTrust` implementation, which
+  receives the chain **and the signing time the credential carries** so the
+  caller decides which instant the path is validated at. The signing time is
+  read before the signature is verified and is treated as untrusted: this
+  package asserts it falls inside the document signer certificate's own validity
+  window (ISO/IEC 18013-5 §9.3.1 step 5) and re-asserts it against the
+  authenticated value afterwards.
 - `deviceMac` (session-encryption MAC) is out of scope; remote flows use the
   device signature.
 

@@ -6,7 +6,10 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"errors"
+	"math/big"
 	"testing"
 	"time"
 
@@ -121,7 +124,10 @@ func buildValidIssuerSigned(t *testing.T, docType, digestAlg string, from, until
 		validFrom: from, validUntil: until,
 		items: map[string]map[uint]cbor.RawMessage{"org.iso.18013.5.1": {0: fn, 1: gn}},
 	})
-	issuerAuth := signIssuerAuth(t, issuerKey, [][]byte{{0x01, 0x02}}, msoBytes)
+	// A real document signer certificate: the signing-time-inside-the-signer-window
+	// assertion parses it, exactly as a wallet's x5chain would be parsed.
+	dsCert := issuerCertDER(t, issuerKey, from.Add(-24*time.Hour), until.Add(24*time.Hour))
+	issuerAuth := signIssuerAuth(t, issuerKey, [][]byte{dsCert}, msoBytes)
 	return IssuerSigned{NameSpaces: IssuerNameSpaces{"org.iso.18013.5.1": {fn, gn}}, IssuerAuth: issuerAuth}, &issuerKey.PublicKey, dev
 }
 
@@ -243,12 +249,45 @@ func signIssuerAuth(t *testing.T, issuerKey *ecdsa.PrivateKey, x5chain [][]byte,
 	return raw
 }
 
-// cryptoPub aliases the stdlib crypto.PublicKey the resolver returns.
+// cryptoPub aliases the stdlib crypto.PublicKey the trust boundary returns.
 type cryptoPub = stdcrypto.PublicKey
 
-// fixedResolver returns an IssuerChainResolver that always yields pub.
-func fixedResolver(pub *ecdsa.PublicKey) IssuerChainResolver {
-	return func(_ [][]byte) (cryptoPub, error) { return pub, nil }
+// fixedTrust is an IssuerTrust that always yields the same key and records the
+// signing time it was asked to judge the path at.
+type fixedTrust struct {
+	pub      *ecdsa.PublicKey
+	askedFor time.Time
+}
+
+func (f *fixedTrust) ResolveIssuerKey(_ [][]byte, signed time.Time) (cryptoPub, error) {
+	f.askedFor = signed
+	return f.pub, nil
+}
+
+// refusingTrust is an IssuerTrust that resolves nothing — the "chain reaches no
+// anchor we hold" case.
+type refusingTrust struct{}
+
+func (*refusingTrust) ResolveIssuerKey(_ [][]byte, _ time.Time) (cryptoPub, error) {
+	return nil, errors.New("untrusted")
+}
+
+// issuerCertDER mints a self-signed document signer certificate for key, with
+// an explicit validity window.
+func issuerCertDER(t *testing.T, key *ecdsa.PrivateKey, notBefore, notAfter time.Time) []byte {
+	t.Helper()
+	tmpl := &x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject:      pkix.Name{CommonName: "Test PID DS", Country: []string{"UT"}},
+		NotBefore:    notBefore,
+		NotAfter:     notAfter,
+		KeyUsage:     x509.KeyUsageDigitalSignature,
+	}
+	der, err := x509.CreateCertificate(rand.Reader, tmpl, tmpl, &key.PublicKey, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return der
 }
 
 // itemBytes builds one IssuerSignedItemBytes for family_name-style elements.
