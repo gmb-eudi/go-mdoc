@@ -35,14 +35,14 @@ func (v *Verifier) verifyDeviceAuth(doc *Document, deviceKey crypto.PublicKey, s
 		cbor.RawMessage(doc.DeviceSigned.NameSpaces),
 	})
 	if err != nil {
-		return fmt.Errorf("%w: build DeviceAuthentication: %v", ErrDeviceAuth, err)
+		return fmt.Errorf("%w: build DeviceAuthentication: %w", ErrDeviceAuth, err)
 	}
 	spliced, err := spliceCOSEPayload(da.DeviceSignature, deviceAuthBytes)
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrDeviceAuth, err)
+		return fmt.Errorf("%w: %w", ErrDeviceAuth, err)
 	}
 	if _, _, err := eudicrypto.VerifyCOSESign1([]byte(spliced), deviceKey); err != nil {
-		return fmt.Errorf("%w: %v", ErrDeviceAuth, err)
+		return fmt.Errorf("%w: %w", ErrDeviceAuth, err)
 	}
 	return nil
 }

@@ -73,7 +73,7 @@ func (i *Issuer) Issue(ctx context.Context, doc DocumentTemplate, deviceKey cryp
 			}
 			salt := make([]byte, 32)
 			if _, err := rand.Read(salt); err != nil {
-				return nil, fmt.Errorf("%w: salt: %v", ErrUnsupported, err)
+				return nil, fmt.Errorf("%w: salt: %w", ErrUnsupported, err)
 			}
 			itemBytes, err := encodeTagged24(IssuerSignedItem{
 				DigestID: digestID, Random: salt, ElementIdentifier: id, ElementValue: ev,
@@ -205,11 +205,11 @@ func docTypeFromIssuerAuth(issuerAuth cbor.RawMessage) (string, error) {
 	}
 	var payload []byte
 	if err := decode([]byte(parts[2]), &payload); err != nil {
-		return "", fmt.Errorf("%w: IssuerAuth payload: %v", ErrMalformed, err)
+		return "", fmt.Errorf("%w: IssuerAuth payload: %w", ErrMalformed, err)
 	}
 	var mso MobileSecurityObject
 	if err := decodeTagged24(payload, &mso); err != nil {
-		return "", fmt.Errorf("%w: MSO: %v", ErrMalformed, err)
+		return "", fmt.Errorf("%w: MSO: %w", ErrMalformed, err)
 	}
 	return mso.DocType, nil
 }

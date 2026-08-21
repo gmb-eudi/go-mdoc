@@ -20,7 +20,7 @@ import (
 func (v *Verifier) verifyIssuerAuth(issuerAuth cbor.RawMessage, trust IssuerTrust, at time.Time) (*MobileSecurityObject, crypto.PublicKey, error) {
 	parts, err := coseParts(issuerAuth)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%w: IssuerAuth: %v", ErrIssuerAuth, err)
+		return nil, nil, fmt.Errorf("%w: IssuerAuth: %w", ErrIssuerAuth, err)
 	}
 	x5chain, err := x5chainFrom(parts)
 	if err != nil {
@@ -54,16 +54,16 @@ func (v *Verifier) verifyIssuerAuth(issuerAuth cbor.RawMessage, trust IssuerTrus
 	}
 	tagged, err := coseAssemble(parts)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%w: %v", ErrIssuerAuth, err)
+		return nil, nil, fmt.Errorf("%w: %w", ErrIssuerAuth, err)
 	}
 	payload, _, err := eudicrypto.VerifyCOSESign1([]byte(tagged), dsKey)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%w: %v", ErrIssuerAuth, err) // wraps ErrVerificationFailed/ErrAlg*
+		return nil, nil, fmt.Errorf("%w: %w", ErrIssuerAuth, err) // wraps ErrVerificationFailed/ErrAlg*
 	}
 	// payload = MobileSecurityObjectBytes = #6.24(bstr .cbor MSO)
 	var mso MobileSecurityObject
 	if err := decodeTagged24(payload, &mso); err != nil {
-		return nil, nil, fmt.Errorf("%w: MSO: %v", ErrMalformed, err)
+		return nil, nil, fmt.Errorf("%w: MSO: %w", ErrMalformed, err)
 	}
 	// The signing time is issuer-attested from here on. The certificate window
 	// and the validation time were decided on the unverified copy, so require
@@ -80,7 +80,7 @@ func (v *Verifier) verifyIssuerAuth(issuerAuth cbor.RawMessage, trust IssuerTrus
 	}
 	deviceKey, err := parseCOSEKey(mso.DeviceKeyInfo.DeviceKey)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%w: deviceKey: %v", ErrMalformed, err)
+		return nil, nil, fmt.Errorf("%w: deviceKey: %w", ErrMalformed, err)
 	}
 	return &mso, deviceKey, nil
 }
@@ -91,11 +91,11 @@ func (v *Verifier) verifyIssuerAuth(issuerAuth cbor.RawMessage, trust IssuerTrus
 func claimedSigningTime(payloadElement cbor.RawMessage) (time.Time, error) {
 	var payload []byte
 	if err := decode([]byte(payloadElement), &payload); err != nil {
-		return time.Time{}, fmt.Errorf("%w: IssuerAuth payload: %v", ErrMalformed, err)
+		return time.Time{}, fmt.Errorf("%w: IssuerAuth payload: %w", ErrMalformed, err)
 	}
 	var mso MobileSecurityObject
 	if err := decodeTagged24(payload, &mso); err != nil {
-		return time.Time{}, fmt.Errorf("%w: MSO: %v", ErrMalformed, err)
+		return time.Time{}, fmt.Errorf("%w: MSO: %w", ErrMalformed, err)
 	}
 	if mso.ValidityInfo.Signed.IsZero() {
 		return time.Time{}, fmt.Errorf("%w: ValidityInfo missing signed", ErrMalformed)

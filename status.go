@@ -33,7 +33,7 @@ func parseMSOStatus(raw cbor.RawMessage) (*StatusRef, error) {
 	}
 	var full map[string]any
 	if err := decode([]byte(raw), &full); err != nil {
-		return nil, fmt.Errorf("%w: not a map: %v", ErrStatus, err)
+		return nil, fmt.Errorf("%w: not a map: %w", ErrStatus, err)
 	}
 	var typed struct {
 		StatusList *struct {
@@ -42,7 +42,7 @@ func parseMSOStatus(raw cbor.RawMessage) (*StatusRef, error) {
 		} `cbor:"status_list"`
 	}
 	if err := decode([]byte(raw), &typed); err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrStatus, err)
+		return nil, fmt.Errorf("%w: %w", ErrStatus, err)
 	}
 	if typed.StatusList == nil {
 		// A status map without a recognized status_list is an unknown format.

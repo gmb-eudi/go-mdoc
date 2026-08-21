@@ -29,7 +29,7 @@ func (v *Verifier) verifyIssuerIntegrity(mso *MobileSecurityObject, ns IssuerNam
 		for _, itemBytes := range items {
 			var isi IssuerSignedItem
 			if err := decodeTagged24(itemBytes, &isi); err != nil {
-				return nil, fmt.Errorf("%w: IssuerSignedItem: %v", ErrMalformed, err)
+				return nil, fmt.Errorf("%w: IssuerSignedItem: %w", ErrMalformed, err)
 			}
 			want, ok := digestIDs[isi.DigestID]
 			if !ok {
