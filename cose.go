@@ -72,7 +72,7 @@ func x5chainFrom(parts [4]cbor.RawMessage) ([][]byte, error) {
 func headerBytes(raw cbor.RawMessage) ([]byte, error) {
 	var b []byte
 	if err := decode(raw, &b); err != nil {
-		return nil, fmt.Errorf("%w: protected header not a byte string: %v", ErrMalformed, err)
+		return nil, fmt.Errorf("%w: protected header not a byte string: %w", ErrMalformed, err)
 	}
 	return b, nil
 }
@@ -102,7 +102,7 @@ func parseX5Chain(raw cbor.RawMessage) ([][]byte, error) {
 	}
 	var many [][]byte
 	if err := decode(raw, &many); err != nil {
-		return nil, fmt.Errorf("%w: x5chain not bstr or [bstr]: %v", ErrMalformed, err)
+		return nil, fmt.Errorf("%w: x5chain not bstr or [bstr]: %w", ErrMalformed, err)
 	}
 	if len(many) == 0 {
 		return nil, fmt.Errorf("%w: empty x5chain", ErrIssuerAuth)

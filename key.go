@@ -6,7 +6,6 @@ import (
 	"crypto/elliptic"
 	"errors"
 	"fmt"
-	"math/big"
 
 	"github.com/fxamacker/cbor/v2"
 	eudicrypto "github.com/gmb-eudi/go-eudi-crypto"
@@ -22,7 +21,7 @@ import (
 func parseCOSEKey(raw cbor.RawMessage) (*ecdsa.PublicKey, error) {
 	var m map[int64]cbor.RawMessage
 	if err := decode([]byte(raw), &m); err != nil {
-		return nil, fmt.Errorf("%w: COSE_Key: %v", ErrMalformed, err)
+		return nil, fmt.Errorf("%w: COSE_Key: %w", ErrMalformed, err)
 	}
 	var kty int64
 	if err := decode(m[1], &kty); err != nil || kty != 2 { // [RFC 9053 §7.1]: EC2 = 2
@@ -30,7 +29,7 @@ func parseCOSEKey(raw cbor.RawMessage) (*ecdsa.PublicKey, error) {
 	}
 	var crvLabel int64
 	if err := decode(m[-1], &crvLabel); err != nil {
-		return nil, fmt.Errorf("%w: COSE_Key crv: %v", ErrMalformed, err)
+		return nil, fmt.Errorf("%w: COSE_Key crv: %w", ErrMalformed, err)
 	}
 	curve, ecdhCurve, crvName, err := curveForCOSELabel(crvLabel)
 	if err != nil {
@@ -41,10 +40,10 @@ func parseCOSEKey(raw cbor.RawMessage) (*ecdsa.PublicKey, error) {
 	}
 	var x, y []byte
 	if err := decode(m[-2], &x); err != nil {
-		return nil, fmt.Errorf("%w: COSE_Key x: %v", ErrMalformed, err)
+		return nil, fmt.Errorf("%w: COSE_Key x: %w", ErrMalformed, err)
 	}
 	if err := decode(m[-3], &y); err != nil {
-		return nil, fmt.Errorf("%w: COSE_Key y: %v", ErrMalformed, err)
+		return nil, fmt.Errorf("%w: COSE_Key y: %w", ErrMalformed, err)
 	}
 	size := (curve.Params().BitSize + 7) / 8
 	if len(x) > size || len(y) > size {
@@ -55,9 +54,17 @@ func parseCOSEKey(raw cbor.RawMessage) (*ecdsa.PublicKey, error) {
 	copy(pt[1+size-len(x):1+size], x)
 	copy(pt[1+2*size-len(y):], y)
 	if _, err := ecdhCurve.NewPublicKey(pt); err != nil { // validates on-curve
-		return nil, fmt.Errorf("%w: COSE_Key point invalid: %v", ErrMalformed, err)
+		return nil, fmt.Errorf("%w: COSE_Key point invalid: %w", ErrMalformed, err)
 	}
-	return &ecdsa.PublicKey{Curve: curve, X: new(big.Int).SetBytes(x), Y: new(big.Int).SetBytes(y)}, nil
+	// Parse the uncompressed point rather than assigning the raw coordinates:
+	// the same bytes already validated above, and the deprecated X/Y fields stay
+	// untouched.
+	pub, err := ecdsa.ParseUncompressedPublicKey(curve, pt)
+	if err != nil {
+		return nil, fmt.Errorf("%w: COSE_Key point invalid: %w", ErrMalformed, err)
+	}
+
+	return pub, nil
 }
 
 // curveForCOSELabel maps a COSE EC2 curve label ([RFC 9053 §7.1]) to the stdlib
@@ -98,7 +105,7 @@ func encodeCOSEKey(pub *ecdsa.PublicKey) ([]byte, error) {
 	}
 	x, y, err := ecPointCoordinates(pub)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrUnsupported, err)
+		return nil, fmt.Errorf("%w: %w", ErrUnsupported, err)
 	}
 	return encode(map[int64]any{1: int64(2), -1: crv, -2: x, -3: y})
 }

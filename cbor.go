@@ -70,7 +70,7 @@ func mustEncMode() cbor.EncMode {
 func decode(raw []byte, v any) error {
 	dec := decMode.NewDecoder(bytes.NewReader(raw))
 	if err := dec.Decode(v); err != nil {
-		return fmt.Errorf("%w: %v", ErrMalformed, err)
+		return fmt.Errorf("%w: %w", ErrMalformed, err)
 	}
 	// Reject trailing bytes: anything after the top-level item must decode to
 	// exactly nothing (io.EOF). A second valid item, a partial/truncated head,
@@ -87,7 +87,7 @@ func decode(raw []byte, v any) error {
 func encode(v any) ([]byte, error) {
 	out, err := encMode.Marshal(v)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrMalformed, err)
+		return nil, fmt.Errorf("%w: %w", ErrMalformed, err)
 	}
 	return out, nil
 }
